@@ -62,10 +62,13 @@ public class DoublyLinkedList {
         return aux;
     }
 
-    // public Operacao remover(){
-      //  if (isEmpty()) {
-       //     return null;
-      //  }
-
-   // }
+     public Boolean remover(Operacao operacao){
+        if (isEmpty()) {
+            return false;
+        }
+         if (operacao.getTipo().getDesignacao().equalsIgnoreCase("REMOÇAO")){
+             return true;
+         }
+         return false;
+    }
 }
