@@ -4,13 +4,13 @@ import Modelo.Operacao;
 
 public class DoublyLinkedList {
     private Node cabeca;
-    private Node Cauda;
+    private Node cauda;
     private int tamanho;
 
     public DoublyLinkedList() {
-        cabeca = null;
-        Cauda = null;
-        tamanho = 0;
+        this.cabeca = null;
+        this.cauda = null;
+        this.tamanho = 0;
     }
 
     public Node getCabeca() {
@@ -18,57 +18,58 @@ public class DoublyLinkedList {
     }
 
     public Node getCauda() {
-        return Cauda;
+        return cauda;
     }
 
     public int getTamanho() {
         return tamanho;
     }
 
-    public void setCabeca(Node cabeca) {
-        this.cabeca = cabeca;
+    public boolean isEmpty() {
+        return tamanho == 0;
     }
 
-    public void setCauda(Node cauda) {
-        Cauda = cauda;
-    }
 
-    public void setTamanho(int tamanho) {
-        this.tamanho = tamanho;
-    }
-
-    public Boolean isEmpty() {
-        if (cabeca == null && Cauda == null && tamanho == 0) {
-            return true;
+    public void inserirFim(Operacao operacao) {
+        if (operacao == null) {
+            return;
         }
-        return false;
-    }
 
-    public void inserirFim(Node novo) {
+        Node novo = new Node(operacao);
+
         if (isEmpty()) {
             cabeca = novo;
-            Cauda = novo;
-            tamanho++;
+            cauda = novo;
+        } else {
+            cauda.setSeguinte(novo);
+            novo.setAnterior(cauda);
+            cauda = novo;
         }
+        tamanho++;
     }
-    public Node removerFim() {
+
+
+    public Operacao removerFim() {
         if (isEmpty()) {
             return null;
         }
-        Node aux = Cauda;
-        Cauda = aux.anterior;
-        Cauda.seguinte = null;
-        tamanho--;
-        return aux;
-    }
 
-     public Boolean remover(Operacao operacao){
-        if (isEmpty()) {
-            return false;
+        Node removido = cauda;
+
+        if (cabeca == cauda) { // Apenas 1 elemento na lista
+            cabeca = null;
+            cauda = null;
+        } else {
+            cauda = cauda.getAnterior();
+            cauda.setSeguinte(null);
         }
-         if (operacao.getTipo().getDesignacao().equalsIgnoreCase("REMOÇAO")){
-             return true;
-         }
-         return false;
+
+        tamanho--;
+
+        // Limpa as referências do nó removido por segurança
+        removido.setAnterior(null);
+        removido.setSeguinte(null);
+
+        return removido.getElemento();
     }
 }

@@ -5,19 +5,18 @@ import Modelo.Encomenda;
 public class HeapBinario {
     private Encomenda[] elementos;
     private int tamanho;
-    private int capacidade;
-
-
-    public HeapBinario(int capacidade) {
-        if (capacidade <= 0) {
-            this.capacidade = capacidade;
-        }
-        this.elementos = new Encomenda[capacidade];
-        this.tamanho = 0;
-    }
+    private static final int CAPACIDADE_PADRAO = 10;
 
     public HeapBinario() {
-        this.capacidade = 10;
+        this(CAPACIDADE_PADRAO);
+    }
+
+    public HeapBinario(int capacidadeInicial) {
+        if (capacidadeInicial <= 0) {
+            capacidadeInicial = CAPACIDADE_PADRAO;
+        }
+        this.elementos = new Encomenda[capacidadeInicial];
+        this.tamanho = 0;
     }
 
     public void inserir(Encomenda encomenda) {
@@ -33,6 +32,7 @@ public class HeapBinario {
         heapifyUp(tamanho);
         tamanho++;
     }
+
     public Encomenda removerTopo() {
         if (isEmpty()) {
             return null;
@@ -56,6 +56,7 @@ public class HeapBinario {
         }
         return elementos[0];
     }
+
     public Encomenda removerPorId(String id) {
         if (id == null || isEmpty()) {
             return null;
@@ -70,7 +71,7 @@ public class HeapBinario {
         }
 
         if (indiceEncontrado == -1) {
-            return null; // Não encontrada
+            return null;
         }
 
         Encomenda removida = elementos[indiceEncontrado];
@@ -85,7 +86,8 @@ public class HeapBinario {
 
         return removida;
     }
-    public void heapifyUp(int indice) {
+
+    private void heapifyUp(int indice) {
         while (indice > 0) {
             int indicePai = (indice - 1) / 2;
 
@@ -97,7 +99,8 @@ public class HeapBinario {
             }
         }
     }
-    public void heapifyDown(int indice) {
+
+    private void heapifyDown(int indice) {
         while (indice < tamanho) {
             int esquerdo = 2 * indice + 1;
             int direito = 2 * indice + 2;
@@ -119,16 +122,20 @@ public class HeapBinario {
             }
         }
     }
-    public void trocar(int i, int j) {
+
+    private void trocar(int i, int j) {
         Encomenda temp = elementos[i];
         elementos[i] = elementos[j];
         elementos[j] = temp;
     }
-    public void redimensionar() {
-        Encomenda[] novoArray = new Encomenda[elementos.length * 2];
+
+    private void redimensionar() {
+        int novaCapacidade = elementos.length == 0 ? CAPACIDADE_PADRAO : elementos.length * 2;
+        Encomenda[] novoArray = new Encomenda[novaCapacidade];
         System.arraycopy(elementos, 0, novoArray, 0, elementos.length);
         elementos = novoArray;
     }
+
     public int getTamanho() {
         return tamanho;
     }

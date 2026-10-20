@@ -1,39 +1,42 @@
 package Estrutura;
 
-public class Node {
-    public int data;
-    public Node seguinte;
-    public Node anterior;
+import Modelo.Operacao;
 
-    public Node(int data, Node seguinte, Node anterior) {
-        this.data = data;
+public class Node {
+    private Operacao elemento;
+    private Node seguinte;
+    private Node anterior;
+
+    public Node(Operacao elemento) {
+        this.elemento = elemento;
+        this.seguinte = null;
+        this.anterior = null;
+    }
+
+    public Node(Operacao elemento, Node seguinte, Node anterior) {
+        this.elemento = elemento;
         this.seguinte = seguinte;
         this.anterior = anterior;
     }
-    public Node(int data, Node seguinte) {
-        this.data = data;
-        this.seguinte = seguinte;
-        this.anterior = null;
+
+    public Operacao getElemento() {
+        return elemento;
+    }
+
+    public void setElemento(Operacao elemento) {
+        this.elemento = elemento;
     }
 
     public Node getAnterior() {
         return anterior;
     }
 
-    public Node getSeguinte() {
-        return seguinte;
-    }
-
-    public int getData() {
-        return data;
-    }
-
-    public void setData(int data) {
-        this.data = data;
-    }
-
     public void setAnterior(Node anterior) {
         this.anterior = anterior;
+    }
+
+    public Node getSeguinte() {
+        return seguinte;
     }
 
     public void setSeguinte(Node seguinte) {
