@@ -6,19 +6,17 @@ import java.util.List;
 
 public class OtimizacaoGreedy {
 
+    // 1. Algoritmo Guloso para Empacotamento de Encomendas num Veículo
     public static List<Encomenda> selecionarEncomendas(List<Encomenda> lista, double maxPeso, double maxVolume) {
-        if (lista == null || lista.isEmpty()) {
-            return new ArrayList<>();
-        }
-
-        // 1. Criamos uma cópia para não alterar a lista original
         List<Encomenda> candidatos = new ArrayList<>(lista);
 
-        // 2. Ordenação simples (Bubble Sort) por densidade decrescente
+        // Ordenar por densidade decrescente: prioridade / (peso + volume)
         for (int i = 0; i < candidatos.size() - 1; i++) {
             for (int j = 0; j < candidatos.size() - 1 - i; j++) {
-                // Se a encomenda atual tiver menor densidade que a próxima, trocamos de posição
-                if (candidatos.get(j).getDensidade() < candidatos.get(j + 1).getDensidade()) {
+                double densidade1 = candidatos.get(j).getPrioridade() / (candidatos.get(j).getPeso() + candidatos.get(j).getVolume());
+                double densidade2 = candidatos.get(j + 1).getPrioridade() / (candidatos.get(j + 1).getPeso() + candidatos.get(j + 1).getVolume());
+
+                if (densidade1 < densidade2) {
                     Encomenda temp = candidatos.get(j);
                     candidatos.set(j, candidatos.get(j + 1));
                     candidatos.set(j + 1, temp);
@@ -26,15 +24,13 @@ public class OtimizacaoGreedy {
             }
         }
 
-        // 3. Seleção gulosa: percorrer por ordem e carregar o que couber
+        // Selecionar as que cabem no limite de peso e volume
         List<Encomenda> selecionadas = new ArrayList<>();
-        double pesoAtual = 0.0;
-        double volumeAtual = 0.0;
+        double pesoAtual = 0;
+        double volumeAtual = 0;
 
         for (int i = 0; i < candidatos.size(); i++) {
             Encomenda enc = candidatos.get(i);
-
-            // Verifica se a encomenda cabe tanto no limite de peso como no de volume
             if (pesoAtual + enc.getPeso() <= maxPeso && volumeAtual + enc.getVolume() <= maxVolume) {
                 selecionadas.add(enc);
                 pesoAtual += enc.getPeso();
@@ -42,64 +38,36 @@ public class OtimizacaoGreedy {
             }
         }
 
-        System.out.println("Empacotamento Guloso");
-        System.out.println("Carregadas: " + selecionadas.size() + " de " + lista.size() + " encomendas.");
-        System.out.println("Peso acumulado: " + pesoAtual + " / " + maxPeso + " kg");
-        System.out.println("Volume acumulado: " + volumeAtual + " / " + maxVolume + " m³");
-
         return selecionadas;
     }
 
-    // Interval Scheduling
+    // 2. Algoritmo Guloso para Seleção de Intervalos (Janelas Temporais)
+    public static List<Intervalo> otimizarJanelasEntrega(List<Intervalo> lista) {
+        List<Intervalo> candidatos = new ArrayList<>(lista);
 
-    public static List<Encomenda> otimizarJanelasEntrega(List<Encomenda> lista) {
-        if (lista == null || lista.isEmpty()) {
-            return new ArrayList<>();
-        }
-
-        // 1. Filtrar apenas encomendas que tenham janela de entrega definida
-        List<Encomenda> candidatas = new ArrayList<>();
-        for (int i = 0; i < lista.size(); i++) {
-            Encomenda e = lista.get(i);
-            if (e.getJanelaEntrega() != null) {
-                candidatas.add(e);
-            }
-        }
-
-        // 2. Ordenação simples (Bubble Sort) por tempo de fim crescente
-        for (int i = 0; i < candidatas.size() - 1; i++) {
-            for (int j = 0; j < candidatas.size() - 1 - i; j++) {
-                LocalDateTime fimJ = candidatas.get(j).getJanelaEntrega().getFim();
-                LocalDateTime fimJMais1 = candidatas.get(j + 1).getJanelaEntrega().getFim();
-
-                // Se o fim da entrega j for depois do fim da j+1, trocamos
-                if (fimJ.isAfter(fimJMais1)) {
-                    Encomenda temp = candidatas.get(j);
-                    candidatas.set(j, candidatas.get(j + 1));
-                    candidatas.set(j + 1, temp);
+        // Ordenar por tempo de fim crescente
+        for (int i = 0; i < candidatos.size() - 1; i++) {
+            for (int j = 0; j < candidatos.size() - 1 - i; j++) {
+                if (candidatos.get(j).getFim().isAfter(candidatos.get(j + 1).getFim())) {
+                    Intervalo temp = candidatos.get(j);
+                    candidatos.set(j, candidatos.get(j + 1));
+                    candidatos.set(j + 1, temp);
                 }
             }
         }
 
-        // 3. Seleção gulosa de intervalos compatíveis
-        List<Encomenda> compativeis = new ArrayList<>();
-        LocalDateTime fimUltima = null;
+        // Selecionar os intervalos sem sobreposição
+        List<Intervalo> selecionados = new ArrayList<>();
+        LocalDateTime fimAtual = null;
 
-        for (int i = 0; i < candidatas.size(); i++) {
-            Encomenda enc = candidatas.get(i);
-            LocalDateTime inicioEnc = enc.getJanelaEntrega().getInicio();
-
-            // Se for a primeira entrega, ou se não começar antes do fim da última selecionada (sem conflito)
-            if (fimUltima == null || !inicioEnc.isBefore(fimUltima)) {
-                compativeis.add(enc);
-                fimUltima = enc.getJanelaEntrega().getFim(); // Atualiza a hora em que o veículo fica livre
+        for (int i = 0; i < candidatos.size(); i++) {
+            Intervalo atual = candidatos.get(i);
+            if (fimAtual == null || !atual.getInicio().isBefore(fimAtual)) {
+                selecionados.add(atual);
+                fimAtual = atual.getFim();
             }
         }
 
-        System.out.println("--- Otimização de Janelas Temporais ---");
-        System.out.println("Entregas sem conflito selecionadas: " + compativeis.size() + " de " + candidatas.size());
-
-        return compativeis;
+        return selecionados;
     }
-
 }
