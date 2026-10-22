@@ -28,6 +28,10 @@ public class Veiculo {
         return volumeMaximo;
     }
 
+    public List<Encomenda> getEncomendasAtribuidas() {
+        return encomendasAtribuidas;
+    }
+
     public double getPesoAtual() {
         double pesoAtual = 0;
         for (Encomenda e : encomendasAtribuidas) {
@@ -55,5 +59,10 @@ public class Veiculo {
 
     public boolean removerEncomenda(Encomenda encomenda) {
         return encomendasAtribuidas.remove(encomenda);
+    }
+
+    @Override
+    public String toString() {
+        return "Veiculo[" + id + " | Carga: " + getPesoAtual() + "/" + pesoMaximo + "kg | Vol: " + getVolumeAtual() + "/" + volumeMaximo + "m³]";
     }
 }

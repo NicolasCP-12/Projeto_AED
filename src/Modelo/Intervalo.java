@@ -11,6 +11,11 @@ public class Intervalo {
         this.fim = fim;
     }
 
+    public Intervalo(int horaInicio, int horaFim) {
+        this(LocalDateTime.now().withHour(horaInicio).withMinute(0).withSecond(0).withNano(0),
+             LocalDateTime.now().withHour(horaFim).withMinute(0).withSecond(0).withNano(0));
+    }
+
     public LocalDateTime getInicio() {
         return inicio;
     }
@@ -21,5 +26,12 @@ public class Intervalo {
 
     public Boolean intersecao(Intervalo intervalo) {
         return this.inicio.isBefore(intervalo.getFim()) && this.fim.isAfter(intervalo.getInicio());
+    }
+
+    @Override
+    public String toString() {
+        return String.format("%02d:%02d até %02d:%02d",
+                inicio.getHour(), inicio.getMinute(),
+                fim.getHour(), fim.getMinute());
     }
 }
