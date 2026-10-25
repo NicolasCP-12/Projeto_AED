@@ -1,6 +1,7 @@
 package Modelo;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 public class Encomenda {
     private String id;
@@ -37,9 +38,14 @@ public class Encomenda {
         return prioridade;
     }
 
-
     public void calcularPrioridade(int novaPrioridade) {
-
         this.prioridade = novaPrioridade;
+    }
+
+    @Override
+    public String toString() {
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+        return String.format("Encomenda [ID=%s | Prioridade=%d | Peso=%.2fkg | Volume=%.2fm3 | Chegada=%s]",
+                id, prioridade, peso, volume, tempoChegada.format(fmt));
     }
 }

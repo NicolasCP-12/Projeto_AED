@@ -1,0 +1,3 @@
+# id;peso;volume;tempoChegada;prioridade
+ENC04;45.00;2.10;2026-10-26T09:00;110
+ENC03;8.00;0.25;2026-10-26T08:30;70

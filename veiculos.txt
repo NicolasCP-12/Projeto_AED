@@ -1,0 +1,3 @@
+# id;pesoMaximo;volumeMaximo
+V01;60.00;2.50
+V02;120.00;5.00

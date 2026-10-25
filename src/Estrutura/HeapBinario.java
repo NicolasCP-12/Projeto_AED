@@ -56,6 +56,17 @@ public class HeapBinario {
         }
         return elementos[0];
     }
+    public Encomenda procurarPorId(String id) {
+        if (id == null || isEmpty()) {
+            return null;
+        }
+        for (int i = 0; i < tamanho; i++) {
+            if (elementos[i].getId().equalsIgnoreCase(id)) {
+                return elementos[i];
+            }
+        }
+        return null;
+    }
 
     public Encomenda removerPorId(String id) {
         if (id == null || isEmpty()) {
