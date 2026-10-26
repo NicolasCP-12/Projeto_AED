@@ -32,6 +32,18 @@ public class GestorEncomendas {
         return true;
     }
 
+    /**
+     * Insere uma encomenda lida de ficheiro sem a registar no histórico -> O(N)
+     * (o estado carregado não deve poder ser desfeito)
+     */
+    public boolean carregarEncomenda(Encomenda encomenda) {
+        if (encomenda == null || filaPrioridade.procurarPorId(encomenda.getId()) != null) {
+            return false;
+        }
+        filaPrioridade.inserir(encomenda);
+        return true;
+    }
+
     public Encomenda consultarMaisPrioritaria() {
         return filaPrioridade.obterTopo();
     }

@@ -11,6 +11,15 @@ public class Encomenda {
     private int prioridade;
 
     public Encomenda(String id, double peso, double volume, LocalDateTime tempoChegada, int prioridade) {
+        if (id == null || id.isBlank()) {
+            throw new IllegalArgumentException("O ID da encomenda é obrigatório.");
+        }
+        if (peso <= 0 || volume <= 0) {
+            throw new IllegalArgumentException("O peso e o volume têm de ser positivos.");
+        }
+        if (tempoChegada == null) {
+            throw new IllegalArgumentException("O tempo de chegada é obrigatório.");
+        }
         this.id = id;
         this.peso = peso;
         this.volume = volume;

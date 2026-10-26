@@ -1,6 +1,7 @@
 import Modelo.Encomenda;
 import Modelo.Intervalo;
 import Modelo.Veiculo;
+import Servico.CalculadoraPrioridade;
 import Servico.GestorEncomendas;
 import Servico.GestorFrota;
 import Servico.GestorHistorico;
@@ -13,6 +14,8 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Scanner;
@@ -22,8 +25,14 @@ public class Main {
     private static final String FICHEIRO_VEICULOS = "veiculos.txt";
     private static final String FICHEIRO_INTERVALOS = "intervalos.txt";
 
+    // Pasta dos ficheiros de dados; pode ser indicada como argumento (por omissão, a pasta atual)
+    private static File pastaDados = new File(".");
+
     public static void main(String[] args) {
         Locale.setDefault(Locale.US);
+        if (args.length > 0) {
+            pastaDados = new File(args[0]);
+        }
 
         // Os gestores partilham uma única instância de GestorHistorico (Secção 2 do Relatório)
         GestorHistorico gestorHistorico = new GestorHistorico();
@@ -32,6 +41,10 @@ public class Main {
 
         garantirFicheirosExemplo();
         carregarDados(gestorEncomendas, gestorFrota);
+        System.out.println("Dados carregados de " + pastaDados.getPath() + ": "
+                + gestorEncomendas.listarEncomendasPorPrioridade().size() + " encomendas pendentes, "
+                + gestorFrota.getVeiculos().size() + " veículos, "
+                + gestorFrota.getJanelasEntrega().size() + " janelas de entrega.");
 
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
@@ -54,7 +67,7 @@ public class Main {
                 System.out.println("11. Listar e navegar no Histórico (Lista Duplamente Ligada)");
                 System.out.println("12. Desfazer última operação (UNDO)");
                 System.out.println("13. Refazer operação (REDO)");
-                System.out.println("0. Guardar dados e Sair");
+                System.out.println("0. Sair (com opção de guardar os dados)");
                 System.out.print("Escolha uma opção: ");
 
                 try {
@@ -65,7 +78,7 @@ public class Main {
 
                 switch (opcao) {
                     case 1:
-                        registarEncomendaMenu(sc, gestorEncomendas);
+                        registarEncomendaMenu(sc, gestorEncomendas, gestorFrota);
                         break;
                     case 2:
                         Encomenda topo = gestorEncomendas.consultarMaisPrioritaria();
@@ -152,8 +165,13 @@ public class Main {
                                 : "Não há operações para refazer.");
                         break;
                     case 0:
-                        guardarDados(gestorEncomendas, gestorFrota);
-                        System.out.println("Dados guardados. A sair...");
+                        // Pergunta antes de gravar, para não alterar os ficheiros de exemplo sem intenção
+                        System.out.print("Guardar os dados antes de sair? (S/N): ");
+                        if (sc.hasNextLine() && sc.nextLine().trim().equalsIgnoreCase("S")) {
+                            guardarDados(gestorEncomendas, gestorFrota);
+                            System.out.println("Dados guardados.");
+                        }
+                        System.out.println("A sair...");
                         break;
                     default:
                         System.out.println("Opção inválida.");
@@ -162,25 +180,36 @@ public class Main {
         }
     }
 
-    private static void registarEncomendaMenu(Scanner sc, GestorEncomendas gestorEncomendas) {
+    private static void registarEncomendaMenu(Scanner sc, GestorEncomendas gestorEncomendas, GestorFrota gestorFrota) {
         try {
             System.out.print("ID da Encomenda: ");
             String id = sc.nextLine().trim();
+            if (gestorFrota.procurarEncomendaAtribuida(id) != null) {
+                System.out.println("Erro: Já existe uma encomenda com esse ID.");
+                return;
+            }
             System.out.print("Peso (kg): ");
             double peso = Double.parseDouble(sc.nextLine().trim());
             System.out.print("Volume (m3): ");
             double volume = Double.parseDouble(sc.nextLine().trim());
-            System.out.print("Prioridade (inteiro): ");
-            int prioridade = Integer.parseInt(sc.nextLine().trim());
+            System.out.print("Urgência (1 a 5): ");
+            int urgencia = Integer.parseInt(sc.nextLine().trim());
+            System.out.print("Taxa paga (€): ");
+            double taxa = Double.parseDouble(sc.nextLine().trim());
 
-            Encomenda nova = new Encomenda(id, peso, volume, LocalDateTime.now(), prioridade);
+            // A prioridade é calculada pelos critérios do grupo (ver CalculadoraPrioridade)
+            LocalDateTime agora = LocalDateTime.now().withSecond(0).withNano(0);
+            int prioridade = CalculadoraPrioridade.calcular(urgencia, taxa, agora, agora);
+            Encomenda nova = new Encomenda(id, peso, volume, agora, prioridade);
             if (gestorEncomendas.registarEncomenda(nova)) {
-                System.out.println("Encomenda registada com sucesso!");
+                System.out.println("Encomenda registada com sucesso! Prioridade calculada: " + prioridade);
             } else {
                 System.out.println("Erro: Já existe uma encomenda com esse ID.");
             }
         } catch (NumberFormatException e) {
             System.out.println("Erro: Valor numérico inválido.");
+        } catch (IllegalArgumentException e) {
+            System.out.println("Erro: " + e.getMessage());
         }
     }
 
@@ -200,6 +229,8 @@ public class Main {
             }
         } catch (NumberFormatException e) {
             System.out.println("Erro: Valor numérico inválido.");
+        } catch (IllegalArgumentException e) {
+            System.out.println("Erro: " + e.getMessage());
         }
     }
 
@@ -209,9 +240,12 @@ public class Main {
             LocalDateTime inicio = LocalDateTime.parse(sc.nextLine().trim());
             System.out.print("Fim (YYYY-MM-DDTHH:MM): ");
             LocalDateTime fim = LocalDateTime.parse(sc.nextLine().trim());
-            gestorFrota.adicionarIntervalo(new Intervalo(inicio, fim));
-            System.out.println("Intervalo registado!");
-        } catch (Exception e) {
+            if (gestorFrota.adicionarIntervalo(new Intervalo(inicio, fim))) {
+                System.out.println("Intervalo registado!");
+            } else {
+                System.out.println("Erro: o fim tem de ser posterior ao início.");
+            }
+        } catch (DateTimeParseException e) {
             System.out.println("Formato inválido. Exemplo: 2026-10-26T14:00");
         }
     }
@@ -236,30 +270,43 @@ public class Main {
         }
     }
 
+    private static File ficheiro(String nome) {
+        return new File(pastaDados, nome);
+    }
+
     private static void garantirFicheirosExemplo() {
-        File fEnc = new File(FICHEIRO_ENCOMENDAS);
-        if (!fEnc.exists()) {
-            try (PrintWriter pw = new PrintWriter(new FileWriter(fEnc))) {
-                pw.println("# id;peso;volume;tempoChegada;prioridade");
-                pw.println("ENC01;12.5;0.40;2026-10-26T08:00;95");
-                pw.println("ENC02;25.0;1.20;2026-10-26T08:15;120");
-                pw.println("ENC03;8.0;0.25;2026-10-26T08:30;70");
-                pw.println("ENC04;45.0;2.10;2026-10-26T09:00;110");
-                pw.println("ENC05;15.0;0.60;2026-10-26T09:10;85");
-                pw.println("ENC06;5.5;0.15;2026-10-26T09:20;130");
-            } catch (IOException ignored) {}
+        if (!pastaDados.exists() && !pastaDados.mkdirs()) {
+            System.out.println("Aviso: não foi possível criar a pasta " + pastaDados.getPath());
+            return;
         }
 
-        File fVeic = new File(FICHEIRO_VEICULOS);
+        File fEnc = ficheiro(FICHEIRO_ENCOMENDAS);
+        if (!fEnc.exists()) {
+            try (PrintWriter pw = new PrintWriter(new FileWriter(fEnc))) {
+                pw.println("# id;peso;volume;tempoChegada;prioridade;veiculo (vazio = pendente)");
+                pw.println("ENC01;12.5;0.40;2026-10-26T08:00;95;");
+                pw.println("ENC02;25.0;1.20;2026-10-26T08:15;120;");
+                pw.println("ENC03;8.0;0.25;2026-10-26T08:30;70;");
+                pw.println("ENC04;45.0;2.10;2026-10-26T09:00;110;");
+                pw.println("ENC05;15.0;0.60;2026-10-26T09:10;85;");
+                pw.println("ENC06;5.5;0.15;2026-10-26T09:20;130;");
+            } catch (IOException e) {
+                System.out.println("Aviso: não foi possível criar " + fEnc.getPath() + " (" + e.getMessage() + ")");
+            }
+        }
+
+        File fVeic = ficheiro(FICHEIRO_VEICULOS);
         if (!fVeic.exists()) {
             try (PrintWriter pw = new PrintWriter(new FileWriter(fVeic))) {
                 pw.println("# id;pesoMaximo;volumeMaximo");
                 pw.println("V01;60.0;2.50");
                 pw.println("V02;120.0;5.00");
-            } catch (IOException ignored) {}
+            } catch (IOException e) {
+                System.out.println("Aviso: não foi possível criar " + fVeic.getPath() + " (" + e.getMessage() + ")");
+            }
         }
 
-        File fInt = new File(FICHEIRO_INTERVALOS);
+        File fInt = ficheiro(FICHEIRO_INTERVALOS);
         if (!fInt.exists()) {
             try (PrintWriter pw = new PrintWriter(new FileWriter(fInt))) {
                 pw.println("# inicio;fim");
@@ -269,64 +316,121 @@ public class Main {
                 pw.println("2026-10-26T11:00;2026-10-26T13:30");
                 pw.println("2026-10-26T11:30;2026-10-26T13:00");
                 pw.println("2026-10-26T13:00;2026-10-26T15:00");
-            } catch (IOException ignored) {}
+            } catch (IOException e) {
+                System.out.println("Aviso: não foi possível criar " + fInt.getPath() + " (" + e.getMessage() + ")");
+            }
         }
     }
 
+    /**
+     * Lê os ficheiros linha a linha. Uma linha inválida é ignorada e reportada,
+     * sem interromper a leitura das restantes. Os veículos são lidos primeiro
+     * para permitir repor as encomendas que lhes estavam atribuídas.
+     */
     private static void carregarDados(GestorEncomendas gestorEncomendas, GestorFrota gestorFrota) {
-        try (BufferedReader br = new BufferedReader(new FileReader(FICHEIRO_ENCOMENDAS))) {
-            String l;
-            while ((l = br.readLine()) != null) {
-                if (l.trim().isEmpty() || l.startsWith("#")) continue;
-                String[] p = l.split(";");
-                gestorEncomendas.registarEncomenda(new Encomenda(
-                        p[0].trim(), Double.parseDouble(p[1].trim()), Double.parseDouble(p[2].trim()),
-                        LocalDateTime.parse(p[3].trim()), Integer.parseInt(p[4].trim())));
+        for (String[] p : lerLinhas(FICHEIRO_VEICULOS, 3)) {
+            try {
+                Veiculo v = new Veiculo(p[0].trim(), Double.parseDouble(p[1].trim()), Double.parseDouble(p[2].trim()));
+                if (!gestorFrota.adicionarVeiculo(v)) {
+                    System.out.println("Aviso: " + FICHEIRO_VEICULOS + ": veículo repetido " + p[0].trim());
+                }
+            } catch (IllegalArgumentException e) {
+                System.out.println("Aviso: " + FICHEIRO_VEICULOS + ": veículo " + p[0].trim() + " ignorado (" + e.getMessage() + ")");
             }
-        } catch (Exception ignored) {}
+        }
 
-        try (BufferedReader br = new BufferedReader(new FileReader(FICHEIRO_VEICULOS))) {
-            String l;
-            while ((l = br.readLine()) != null) {
-                if (l.trim().isEmpty() || l.startsWith("#")) continue;
-                String[] p = l.split(";");
-                gestorFrota.adicionarVeiculo(new Veiculo(
-                        p[0].trim(), Double.parseDouble(p[1].trim()), Double.parseDouble(p[2].trim())));
-            }
-        } catch (Exception ignored) {}
+        for (String[] p : lerLinhas(FICHEIRO_ENCOMENDAS, 5)) {
+            try {
+                Encomenda e = new Encomenda(p[0].trim(), Double.parseDouble(p[1].trim()), Double.parseDouble(p[2].trim()),
+                        LocalDateTime.parse(p[3].trim()), Integer.parseInt(p[4].trim()));
+                String idVeiculo = p.length > 5 ? p[5].trim() : "";
 
-        try (BufferedReader br = new BufferedReader(new FileReader(FICHEIRO_INTERVALOS))) {
-            String l;
-            while ((l = br.readLine()) != null) {
-                if (l.trim().isEmpty() || l.startsWith("#")) continue;
-                String[] p = l.split(";");
-                gestorFrota.adicionarIntervalo(new Intervalo(
-                        LocalDateTime.parse(p[0].trim()), LocalDateTime.parse(p[1].trim())));
+                if (gestorFrota.procurarEncomendaAtribuida(e.getId()) != null) {
+                    System.out.println("Aviso: " + FICHEIRO_ENCOMENDAS + ": encomenda repetida " + e.getId());
+                } else if (idVeiculo.isEmpty()) {
+                    if (!gestorEncomendas.carregarEncomenda(e)) {
+                        System.out.println("Aviso: " + FICHEIRO_ENCOMENDAS + ": encomenda repetida " + e.getId());
+                    }
+                } else {
+                    Veiculo v = gestorFrota.procurarVeiculo(idVeiculo);
+                    if (v == null || !v.adicionarEncomenda(e)) {
+                        System.out.println("Aviso: " + FICHEIRO_ENCOMENDAS + ": " + e.getId()
+                                + " não pôde ser reposta no veículo " + idVeiculo);
+                    }
+                }
+            } catch (IllegalArgumentException | DateTimeParseException ex) {
+                System.out.println("Aviso: " + FICHEIRO_ENCOMENDAS + ": encomenda " + p[0].trim() + " ignorada (" + ex.getMessage() + ")");
             }
-        } catch (Exception ignored) {}
+        }
+
+        for (String[] p : lerLinhas(FICHEIRO_INTERVALOS, 2)) {
+            try {
+                if (!gestorFrota.adicionarIntervalo(new Intervalo(LocalDateTime.parse(p[0].trim()), LocalDateTime.parse(p[1].trim())))) {
+                    System.out.println("Aviso: " + FICHEIRO_INTERVALOS + ": janela com fim anterior ou igual ao início ignorada");
+                }
+            } catch (DateTimeParseException ex) {
+                System.out.println("Aviso: " + FICHEIRO_INTERVALOS + ": data inválida (" + ex.getParsedString() + ")");
+            }
+        }
+    }
+
+    // Devolve os campos de cada linha de dados, ignorando linhas vazias, comentários e linhas incompletas
+    private static List<String[]> lerLinhas(String nome, int camposMinimos) {
+        List<String[]> linhas = new ArrayList<>();
+        File f = ficheiro(nome);
+        try (BufferedReader br = new BufferedReader(new FileReader(f))) {
+            String l;
+            int numero = 0;
+            while ((l = br.readLine()) != null) {
+                numero++;
+                if (l.trim().isEmpty() || l.startsWith("#")) continue;
+                String[] p = l.split(";", -1);
+                if (p.length < camposMinimos) {
+                    System.out.println("Aviso: " + nome + ", linha " + numero + ": campos em falta");
+                    continue;
+                }
+                linhas.add(p);
+            }
+        } catch (IOException e) {
+            System.out.println("Aviso: não foi possível ler " + f.getPath() + " (" + e.getMessage() + ")");
+        }
+        return linhas;
     }
 
     private static void guardarDados(GestorEncomendas gestorEncomendas, GestorFrota gestorFrota) {
-        try (PrintWriter pw = new PrintWriter(new FileWriter(FICHEIRO_ENCOMENDAS))) {
-            pw.println("# id;peso;volume;tempoChegada;prioridade");
+        try (PrintWriter pw = new PrintWriter(new FileWriter(ficheiro(FICHEIRO_ENCOMENDAS)))) {
+            pw.println("# id;peso;volume;tempoChegada;prioridade;veiculo (vazio = pendente)");
             for (Encomenda e : gestorEncomendas.listarEncomendasPorPrioridade()) {
-                pw.printf("%s;%.2f;%.2f;%s;%d%n",
+                pw.printf("%s;%.2f;%.2f;%s;%d;%n",
                         e.getId(), e.getPeso(), e.getVolume(), e.getTempoChegada().toString(), (int) e.getPrioridade());
             }
-        } catch (IOException ignored) {}
+            // As encomendas já atribuídas também são guardadas, com o veículo correspondente
+            for (Veiculo v : gestorFrota.getVeiculos()) {
+                for (Encomenda e : v.getEncomendasAtribuidas()) {
+                    pw.printf("%s;%.2f;%.2f;%s;%d;%s%n",
+                            e.getId(), e.getPeso(), e.getVolume(), e.getTempoChegada().toString(), (int) e.getPrioridade(), v.getId());
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("Erro ao guardar " + FICHEIRO_ENCOMENDAS + ": " + e.getMessage());
+        }
 
-        try (PrintWriter pw = new PrintWriter(new FileWriter(FICHEIRO_VEICULOS))) {
+        try (PrintWriter pw = new PrintWriter(new FileWriter(ficheiro(FICHEIRO_VEICULOS)))) {
             pw.println("# id;pesoMaximo;volumeMaximo");
             for (Veiculo v : gestorFrota.getVeiculos()) {
                 pw.printf("%s;%.2f;%.2f%n", v.getId(), v.getPesoMaximo(), v.getVolumeMaximo());
             }
-        } catch (IOException ignored) {}
+        } catch (IOException e) {
+            System.out.println("Erro ao guardar " + FICHEIRO_VEICULOS + ": " + e.getMessage());
+        }
 
-        try (PrintWriter pw = new PrintWriter(new FileWriter(FICHEIRO_INTERVALOS))) {
+        try (PrintWriter pw = new PrintWriter(new FileWriter(ficheiro(FICHEIRO_INTERVALOS)))) {
             pw.println("# inicio;fim");
             for (Intervalo i : gestorFrota.getJanelasEntrega()) {
                 pw.printf("%s;%s%n", i.getInicio().toString(), i.getFim().toString());
             }
-        } catch (IOException ignored) {}
+        } catch (IOException e) {
+            System.out.println("Erro ao guardar " + FICHEIRO_INTERVALOS + ": " + e.getMessage());
+        }
     }
 }

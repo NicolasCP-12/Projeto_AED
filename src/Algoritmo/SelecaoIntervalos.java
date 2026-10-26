@@ -23,12 +23,12 @@ public class SelecaoIntervalos {
         // 1. Ordenação pelo tempo de fim crescente via MergeSort -> O(N log N)
         mergeSort(candidatos, 0, candidatos.size() - 1);
 
-        // 2. Seleção gananciosa dos intervalos sem sobreposição -> O(N)[cite: 18]
+        // 2. Seleção gananciosa dos intervalos sem sobreposição -> O(N)
         List<Intervalo> selecionados = new ArrayList<>();
         LocalDateTime fimUltimoSelecionado = null;
 
         for (Intervalo atual : candidatos) {
-            // Seleciona se for o primeiro ou se o início for maior/igual ao fim do último aceite[cite: 18]
+            // Seleciona se for o primeiro ou se o início for maior/igual ao fim do último aceite
             if (fimUltimoSelecionado == null || !atual.getInicio().isBefore(fimUltimoSelecionado)) {
                 selecionados.add(atual);
                 fimUltimoSelecionado = atual.getFim();

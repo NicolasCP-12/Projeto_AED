@@ -1,7 +1,7 @@
 package Modelo;
 
 
-// Ainda para decidir como será a gestao de de frotas e encomendas
+// Operação genérica reversível (padrão Command); as especializações estão no pacote Servico
 public class Operacao implements Comando {
     private TipoOperacao tipo;
     private Encomenda encomenda;

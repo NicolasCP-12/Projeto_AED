@@ -42,6 +42,20 @@ public class GestorFrota {
         return null;
     }
 
+    /**
+     * Procura uma encomenda já atribuída a algum veículo -> O(V·K)
+     */
+    public Encomenda procurarEncomendaAtribuida(String id) {
+        for (Veiculo v : veiculos) {
+            for (Encomenda e : v.getEncomendasAtribuidas()) {
+                if (e.getId().equalsIgnoreCase(id)) {
+                    return e;
+                }
+            }
+        }
+        return null;
+    }
+
     public List<Encomenda> carregarVeiculo(String idVeiculo, HeapBinario heap) {
         Veiculo veiculo = procurarVeiculo(idVeiculo);
         if (veiculo == null) {
@@ -59,10 +73,12 @@ public class GestorFrota {
         return carregadas;
     }
 
-    public void adicionarIntervalo(Intervalo intervalo) {
+    public boolean adicionarIntervalo(Intervalo intervalo) {
         if (intervalo != null && intervalo.getInicio().isBefore(intervalo.getFim())) {
             janelasEntrega.add(intervalo);
+            return true;
         }
+        return false;
     }
 
     public List<Intervalo> planearEntregas() {

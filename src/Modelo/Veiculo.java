@@ -10,6 +10,12 @@ public class Veiculo {
     private List<Encomenda> encomendasAtribuidas;
 
     public Veiculo(String id, double pesoMaximo, double volumeMaximo) {
+        if (id == null || id.isBlank()) {
+            throw new IllegalArgumentException("O ID do veículo é obrigatório.");
+        }
+        if (pesoMaximo <= 0 || volumeMaximo <= 0) {
+            throw new IllegalArgumentException("As capacidades do veículo têm de ser positivas.");
+        }
         this.id = id;
         this.pesoMaximo = pesoMaximo;
         this.volumeMaximo = volumeMaximo;
